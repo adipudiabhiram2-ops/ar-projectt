@@ -5,63 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image.prod.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     body { margin: 0; font-family: Arial; }
 
-    #score {
+    #start {
       position: fixed;
-      top: 15px;
-      left: 15px;
-      z-index: 10;
-      background: black;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 12px;
+      z-index: 100;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 18px 35px;
+      background: #00ffff;
+      border: none;
+      border-radius: 15px;
       font-size: 20px;
+      font-weight: bold;
     }
 
-    #message {
+    #status {
       position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      background: white;
-      padding: 12px;
-      border-radius: 10px;
-      white-space: nowrap;
+      z-index: 100;
+      top: 15px;
+      left: 10px;
+      color: white;
+      background: black;
+      padding: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<div id="score">Score: 0 | Time: 30</div>
-<div id="message">Scan the target and tap the ball!</div>
+<div id="status">Ready to start</div>
+<button id="start">START AR</button>
 
 <a-scene
-  mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind;"
+  id="scene"
+  mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/examples/image-tracking/assets/card-example/card.mind; autoStart: false;"
+  color-space="sRGB"
+  renderer="colorManagement: true"
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false">
 
-  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-camera position="0 0 0"
+    look-controls="enabled: false">
+    <a-cursor></a-cursor>
+  </a-camera>
 
   <a-entity mindar-image-target="targetIndex: 0">
 
     <a-sphere
       id="ball"
       position="0 0 0.3"
-      radius="0.18"
-      color="#00FFFF"
-      animation="property: rotation; to: 360 360 0; loop: true; dur: 2000">
+      radius="0.2"
+      color="cyan">
     </a-sphere>
 
     <a-text
       value="CATCH THE BALL!"
-      position="-0.65 0.65 0"
+      position="-0.6 0.6 0"
       color="yellow"
       width="2">
     </a-text>
@@ -70,42 +74,21 @@
 </a-scene>
 
 <script>
-let score = 0;
-let time = 30;
-let playing = true;
+const startButton = document.getElementById("start");
+const status = document.getElementById("status");
+const scene = document.getElementById("scene");
 
-const ball = document.querySelector("#ball");
-const scoreBoard = document.querySelector("#score");
-const message = document.querySelector("#message");
-
-function moveBall() {
-  ball.setAttribute("position", {
-    x: (Math.random() - 0.5) * 1.2,
-    y: (Math.random() - 0.5) * 0.9,
-    z: 0.3
-  });
-}
-
-ball.addEventListener("click", () => {
-  if (!playing) return;
-
-  score++;
-  scoreBoard.innerText = "Score: " + score + " | Time: " + time;
-  moveBall();
-});
-
-const timer = setInterval(() => {
-  if (!playing) return;
-
-  time--;
-  scoreBoard.innerText = "Score: " + score + " | Time: " + time;
-
-  if (time <= 0) {
-    playing = false;
-    message.innerText = "GAME OVER! Final score: " + score;
-    clearInterval(timer);
+startButton.addEventListener("click", async () => {
+  try {
+    status.innerText = "Opening camera...";
+    await scene.systems["mindar-image-system"].start();
+    status.innerText = "Camera started! Scan the target.";
+    startButton.style.display = "none";
+  } catch (error) {
+    status.innerText = "Camera error: " + error.message;
+    console.error(error);
   }
-}, 1000);
+});
 </script>
 
 </body>
