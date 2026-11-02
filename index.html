@@ -5,123 +5,218 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>AR Space Explorer</title>
+  <title>AR Catch Game</title>
 
+  <!-- AR libraries -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     body {
       margin: 0;
-      font-family: Arial;
+      font-family: Arial, sans-serif;
+      background: #101020;
     }
 
-    #info {
+    #start {
       position: fixed;
-      z-index: 10;
+      z-index: 1000;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 18px 35px;
+      border: none;
+      border-radius: 15px;
+      background: cyan;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    #score {
+      position: fixed;
+      z-index: 100;
       top: 15px;
       left: 15px;
-      right: 15px;
-      padding: 15px;
-      background: #101020;
+      padding: 12px;
+      background: black;
       color: white;
-      border-radius: 12px;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+
+    #status {
+      position: fixed;
+      z-index: 100;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: black;
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
       text-align: center;
+      width: 85%;
+    }
+
+    a-scene {
+      position: fixed;
+      inset: 0;
     }
   </style>
 </head>
 
 <body>
 
-<div id="info">🚀 AR SPACE EXPLORER — Scan the target!</div>
+<div id="score">Score: 0 | Time: 30</div>
+<div id="status">Loading AR...</div>
+
+<button id="start">START AR</button>
 
 <a-scene
-  mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/examples/image-tracking/assets/card-example/card.mind;"
+  id="scene"
+  mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind; autoStart: false;"
   color-space="sRGB"
-  renderer="colorManagement: true"
+  renderer="colorManagement: true; physicallyCorrectLights: true"
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false">
 
   <a-camera
     position="0 0 0"
     look-controls="enabled: false">
-    <a-entity
-      cursor="rayOrigin: mouse; fuse: false"
-      raycaster="objects: .planet">
-    </a-entity>
   </a-camera>
 
   <a-entity mindar-image-target="targetIndex: 0">
 
-    <!-- Sun -->
     <a-sphere
+      id="ball"
       position="0 0 0.3"
-      radius="0.22"
-      color="#FFD700"
-      material="emissive: #FF9900; emissiveIntensity: 0.8">
+      radius="0.18"
+      color="#00FFFF"
+      class="clickable"
+      animation="property: rotation; to: 360 360 0; loop: true; dur: 2000">
     </a-sphere>
-
-    <!-- Planet 1 -->
-    <a-sphere
-      class="planet"
-      position="-0.45 0.35 0.3"
-      radius="0.10"
-      color="#2196F3"
-      animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
-    </a-sphere>
-
-    <!-- Planet 2 -->
-    <a-sphere
-      class="planet"
-      position="0.48 0.25 0.3"
-      radius="0.13"
-      color="#FF5722"
-      animation="property: rotation; to: 360 360 0; loop: true; dur: 4000">
-    </a-sphere>
-
-    <!-- Planet 3 -->
-    <a-sphere
-      class="planet"
-      position="0 -0.48 0.3"
-      radius="0.08"
-      color="#9C27B0">
-    </a-sphere>
-
-    <!-- Title -->
-    <a-text
-      value="WELCOME TO SPACE"
-      position="-0.65 0.75 0"
-      color="white"
-      width="2">
-    </a-text>
 
     <a-text
-      value="TAP A PLANET!"
-      position="-0.4 -0.7 0"
+      value="CATCH THE BALL!"
+      position="-0.65 0.65 0"
       color="yellow"
       width="2">
     </a-text>
 
   </a-entity>
+
 </a-scene>
 
 <script>
-const planets = document.querySelectorAll(".planet");
+document.addEventListener("DOMContentLoaded", () => {
 
-const colors = [
-  "#00FFFF",
-  "#FF00FF",
-  "#00FF00",
-  "#FFD700",
-  "#FF5722"
-];
+  const scene = document.querySelector("#scene");
+  const button = document.querySelector("#start");
+  const status = document.querySelector("#status");
+  const scoreBoard = document.querySelector("#score");
+  const ball = document.querySelector("#ball");
 
-planets.forEach(planet => {
-  planet.addEventListener("click", () => {
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    planet.setAttribute("color", color);
+  let arSystem = null;
+  let score = 0;
+  let time = 30;
+  let playing = false;
+  let timer = null;
+
+  function setupAR() {
+
+    arSystem = scene.systems["mindar-image-system"];
+
+    if (!arSystem) {
+      status.innerText = "AR library failed to initialize. Refresh page.";
+      return;
+    }
+
+    status.innerText = "Ready! Tap START AR.";
+
+    button.onclick = async () => {
+      try {
+        status.innerText = "Starting camera...";
+
+        await arSystem.start();
+
+      } catch (error) {
+        status.innerText = "Camera error: " + error.message;
+        console.error(error);
+      }
+    };
+  }
+
+  scene.addEventListener("loaded", setupAR, { once: true });
+
+  if (scene.hasLoaded) {
+    setupAR();
+  }
+
+  scene.addEventListener("arReady", () => {
+    status.innerText = "AR READY! Find the target image.";
+    button.style.display = "none";
   });
+
+  scene.addEventListener("arError", () => {
+    status.innerText = "AR failed. Check camera permission.";
+  });
+
+  function moveBall() {
+    ball.setAttribute("position", {
+      x: (Math.random() - 0.5) * 1.2,
+      y: (Math.random() - 0.5) * 0.9,
+      z: 0.3
+    });
+  }
+
+  function startGame() {
+    score = 0;
+    time = 30;
+    playing = true;
+
+    scoreBoard.innerText = "Score: 0 | Time: 30";
+    status.innerText = "CATCH AS MANY BALLS AS YOU CAN!";
+
+    clearInterval(timer);
+
+    timer = setInterval(() => {
+      time--;
+
+      scoreBoard.innerText =
+        "Score: " + score + " | Time: " + time;
+
+      if (time <= 0) {
+        clearInterval(timer);
+        playing = false;
+        status.innerText = "GAME OVER! Final score: " + score;
+      }
+
+    }, 1000);
+  }
+
+  ball.addEventListener("click", () => {
+    if (!playing) return;
+
+    score++;
+
+    scoreBoard.innerText =
+      "Score: " + score + " | Time: " + time;
+
+    moveBall();
+  });
+
+  scene.addEventListener("targetFound", () => {
+    if (!playing) {
+      startGame();
+    }
+
+    status.innerText = "TARGET FOUND! CATCH THE BALL!";
+  });
+
+  scene.addEventListener("targetLost", () => {
+    status.innerText = "Image lost! Scan the target again.";
+  });
+
 });
 </script>
 
