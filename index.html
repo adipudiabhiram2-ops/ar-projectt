@@ -74,21 +74,42 @@
 </a-scene>
 
 <script>
-const startButton = document.getElementById("start");
-const status = document.getElementById("status");
-const scene = document.getElementById("scene");
+
+const scene = document.querySelector("#scene");
+const startButton = document.querySelector("#start");
+const status = document.querySelector("#status");
+
+let arSystem = null;
+
+scene.addEventListener("loaded", () => {
+  arSystem = scene.systems["mindar-image-system"];
+  status.innerText = "Ready! Tap START AR.";
+});
+
+scene.addEventListener("arReady", () => {
+  status.innerText = "Camera working! Scan the image.";
+  startButton.style.display = "none";
+});
+
+scene.addEventListener("arError", () => {
+  status.innerText = "AR failed to start. Check camera permissions.";
+});
 
 startButton.addEventListener("click", async () => {
   try {
-    status.innerText = "Opening camera...";
-    await scene.systems["mindar-image-system"].start();
-    status.innerText = "Camera started! Scan the target.";
-    startButton.style.display = "none";
+    if (!arSystem) {
+      status.innerText = "Loading AR system... Please wait.";
+      return;
+    }
+
+    status.innerText = "Starting camera...";
+    await arSystem.start();
+
   } catch (error) {
-    status.innerText = "Camera error: " + error.message;
-    console.error(error);
+    status.innerText = "Error: " + error.message;
   }
 });
+
 </script>
 
 </body>
